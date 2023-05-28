@@ -1,49 +1,66 @@
 import {StatusBar} from 'expo-status-bar';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {requestPermissions, scanForBluetoothDevices} from "./services/BluetoothLEService";
-import {useState} from "react";
-import {Device} from "react-native-ble-plx";
+import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useEffect, useState} from "react";
+import {BluetoothDevice} from 'react-native-bluetooth-classic';
+import {getBluetoothDevices, requestBluetoothPermissions} from "./services/BluetoothLEService";
 
 export default function App() {
 
-    const [bluetoothDevices, setBluetoothDevices] = useState<Device[]>([]);
+    const [bluetoothDevices, setBluetoothDevices] = useState<BluetoothDevice[]>([]);
+    const [bluetoothPermissions, setBluetoothPermissions] = useState<boolean>(false);
 
-    requestPermissions()
-        .then(() => {
-                console.log("Permissions Granted");
-                scanForBluetoothDevices()
-                    .then((devices) => {
-                        console.log("Bluetooth devices available: ", devices);
-                        setBluetoothDevices(devices);
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                    });
-            }
-        ).catch((error) => {
-        console.error(error);
-    });
+    useEffect(() => {
+        let bluetoothDevicesFound: BluetoothDevice[] = [];
+        getBluetoothDevices()
+            .then((devices: BluetoothDevice[]) => {
+                devices.map((device: BluetoothDevice) => {
+                    bluetoothDevicesFound.push(device)
+                })
+            })
+            .then(() => {
+                setBluetoothDevices(bluetoothDevicesFound);
+            });
+    }, []);
 
-    const connectToBluetoothDevice = () => {
-        console.log("Connecting to bluetooth device...");
+    requestBluetoothPermissions().then(permission => setBluetoothPermissions(permission));
+
+    const listBluetoothDevices = () => {
+
+        let bluetoothDevicesFound: BluetoothDevice[] = [];
+        getBluetoothDevices()
+            .then((devices: BluetoothDevice[]) => {
+                devices.map((device: BluetoothDevice) => {
+                    bluetoothDevicesFound.push(device)
+                })
+            })
+            .then(() => {
+                setBluetoothDevices(bluetoothDevicesFound);
+            });
     }
-    //
-    // const DeviceItem = ({device}: Device) => (
-    //     <View style={styles.device}>
-    //         <Text style={styles.deviceName}>{device}</Text>
-    //     </View>
-    // );
+
+    type DeviceProps = {
+        name: string,
+        // deviceClass: string | undefined
+    };
+    const DeviceItem = (deviceProps: DeviceProps) => (
+        <View style={styles.button}>
+            <Text style={styles.buttonText}>{deviceProps.name}</Text>
+        </View>
+    );
 
     return (
         <View style={styles.container}>
-            <Text>Open up App.tsx to start working on your app!</Text>
-            {/*<FlatList data={bluetoothDevices} renderItem={({device}) => <DeviceItem device={device.title}/>}*/}
-            {/*          keyExtractor={device: Device => device.id}/>*/}
+            <FlatList data={bluetoothDevices}
+                      renderItem={({item}) => <DeviceItem name={item.name}/>}
+                      keyExtractor={(device: BluetoothDevice) => device.id}
+                      ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
+            />
+            {!bluetoothPermissions && <Text>Permissions Bluetooth non accordées</Text>}
             <TouchableOpacity
-                onPress={connectToBluetoothDevice}
+                onPress={listBluetoothDevices}
                 style={styles.button}>
                 <Text style={styles.buttonText}>
-                    "Connect"
+                    Détecter les appareils Bluetooth
                 </Text>
             </TouchableOpacity>
             <StatusBar style="auto"/>

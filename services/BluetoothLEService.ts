@@ -1,43 +1,81 @@
 import {PermissionsAndroid, Platform} from "react-native";
 import * as ExpoDevice from "expo-device";
-import {BleError, BleManager, Device} from "react-native-ble-plx";
+import RNBluetoothClassic, {BluetoothDevice} from "react-native-bluetooth-classic";
 
-export async function requestPermissions() {
+export async function requestBluetoothPermissions() {
     if (Platform.OS === "android") {
         if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
             const granted = await PermissionsAndroid.request(
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 {
                     title: "Location Permission",
-                    message: "Bluetooth Low Energy requires Location",
+                    message: "Bluetooth requires Location",
                     buttonPositive: "OK",
                 }
             );
             return granted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
-            const isAndroid31PermissionsGranted =
-                await requestAndroid31Permissions();
-
-            return isAndroid31PermissionsGranted;
+            return await requestAndroid31Permissions();
         }
     } else {
         return true;
     }
 }
 
-export async function scanForBluetoothDevices() {
-    const allDevices: Device[] = [];
+export async function getBluetoothDevices(): Promise<BluetoothDevice[]> {
+    let bluetoothDevices: BluetoothDevice[] = [];
+    if (Platform.OS === "android") {
+        await scanBluetoothDevices()
+            .then((devices: BluetoothDevice[]) => {
+                devices.map((device: BluetoothDevice) => {
+                    bluetoothDevices.push(device)
+                })
+            });
+    }
+    await getBondedDevices()
+        .then((devices: BluetoothDevice[]) => {
+            devices.map((device: BluetoothDevice) => {
+                bluetoothDevices.push(device)
+            })
+        });
+    return bluetoothDevices;
+}
 
-    let bleManager = new BleManager;
-    bleManager.startDeviceScan(null, null, (error: BleError | null, device: Device | null) => {
-        if (error) {
-            console.log(error);
+async function scanBluetoothDevices(): Promise<BluetoothDevice[]> {
+    try {
+        let devices: BluetoothDevice[] = [];
+
+        let unpairedDevices: BluetoothDevice[] = await RNBluetoothClassic.startDiscovery();
+
+        let index = devices.findIndex((bluetoothDevice: BluetoothDevice) => !bluetoothDevice.bonded);
+        if (index >= 0) {
+            devices.splice(index, devices.length - index, ...unpairedDevices);
+        } else {
+            devices.push(...unpairedDevices);
         }
-        if (device) {
-            allDevices.push(device);
+        if (!devices) {
+            console.log('No devices found');
+            return [];
         }
-    })
-    return allDevices;
+        console.log(`Unpaired devices found: ${unpairedDevices.length}.`)
+        return devices;
+    } catch (error) {
+        console.error(JSON.stringify(error));
+        return [];
+    }
+}
+
+async function getBondedDevices(): Promise<BluetoothDevice[]> {
+    console.log('Getting bonded devices');
+    try {
+        let bonded = await RNBluetoothClassic.getBondedDevices();
+        console.log(`Bonded devices found: ${bonded.length}.`);
+
+        return bonded;
+    } catch (error) {
+        console.error(JSON.stringify(error));
+        return [];
+    }
 }
 
 const requestAndroid31Permissions = async () => {
@@ -45,7 +83,7 @@ const requestAndroid31Permissions = async () => {
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         {
             title: "Scan Permission",
-            message: "Bluetooth Low Energy requires Scan",
+            message: "Bluetooth requires Scan",
             buttonPositive: "OK",
         }
     );
@@ -53,7 +91,7 @@ const requestAndroid31Permissions = async () => {
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
         {
             title: "Connection Permission",
-            message: "Bluetooth Low Energy requires Connection",
+            message: "Bluetooth requires Connection",
             buttonPositive: "OK",
         }
     );
@@ -61,7 +99,7 @@ const requestAndroid31Permissions = async () => {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
             title: "Location Permission",
-            message: "Bluetooth Low Energy requires Location",
+            message: "Bluetooth requires Location",
             buttonPositive: "OK",
         }
     );
