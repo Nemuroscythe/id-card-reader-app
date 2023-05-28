@@ -1,6 +1,6 @@
 import {StatusBar} from 'expo-status-bar';
 import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {BluetoothDevice} from 'react-native-bluetooth-classic';
 import {getBluetoothDevices, requestBluetoothPermissions} from "./services/BluetoothLEService";
 
@@ -8,19 +8,6 @@ export default function App() {
 
     const [bluetoothDevices, setBluetoothDevices] = useState<BluetoothDevice[]>([]);
     const [bluetoothPermissions, setBluetoothPermissions] = useState<boolean>(false);
-
-    useEffect(() => {
-        let bluetoothDevicesFound: BluetoothDevice[] = [];
-        getBluetoothDevices()
-            .then((devices: BluetoothDevice[]) => {
-                devices.map((device: BluetoothDevice) => {
-                    bluetoothDevicesFound.push(device)
-                })
-            })
-            .then(() => {
-                setBluetoothDevices(bluetoothDevicesFound);
-            });
-    }, []);
 
     requestBluetoothPermissions().then(permission => setBluetoothPermissions(permission));
 
