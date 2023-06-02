@@ -7,6 +7,7 @@ import {getBluetoothDevices, requestBluetoothPermissions} from "./services/Bluet
 export default function App() {
 
     const [bluetoothDevices, setBluetoothDevices] = useState<BluetoothDevice[]>([]);
+    const [bluetoothDeviceSelected, setBluetoothDeviceSelected] = useState<BluetoothDevice>();
     const [bluetoothPermissions, setBluetoothPermissions] = useState<boolean>(false);
 
     requestBluetoothPermissions().then(permission => setBluetoothPermissions(permission));
@@ -27,22 +28,26 @@ export default function App() {
 
     type DeviceProps = {
         name: string,
-        // deviceClass: string | undefined
+        onPress: () => void
     };
     const DeviceItem = (deviceProps: DeviceProps) => (
-        <View style={styles.button}>
-            <Text style={styles.buttonText}>{deviceProps.name}</Text>
-        </View>
+        <TouchableOpacity onPress={deviceProps.onPress}>
+            <View style={styles.button}>
+                <Text style={styles.buttonText}>{deviceProps.name}</Text>
+            </View>
+        </TouchableOpacity>
     );
 
     return (
         <View style={styles.container}>
             <FlatList data={bluetoothDevices}
-                      renderItem={({item}) => <DeviceItem name={item.name}/>}
+                      renderItem={({item}) => <DeviceItem name={item.name}
+                                                          onPress={() => setBluetoothDeviceSelected(item)}/>}
                       keyExtractor={(device: BluetoothDevice) => device.id}
                       ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
             />
             {!bluetoothPermissions && <Text>Permissions Bluetooth non accordées</Text>}
+            {bluetoothDeviceSelected && <Text style={styles.buttonText}>Appareil sélectionné : {bluetoothDeviceSelected.name}</Text>}
             <TouchableOpacity
                 onPress={listBluetoothDevices}
                 style={styles.button}>
@@ -50,6 +55,7 @@ export default function App() {
                     Détecter les appareils Bluetooth
                 </Text>
             </TouchableOpacity>
+
             <StatusBar style="auto"/>
         </View>
     );
