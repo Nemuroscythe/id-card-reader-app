@@ -3,16 +3,19 @@ import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import React, {useState} from "react";
 import {BluetoothDevice} from 'react-native-bluetooth-classic';
 import {getBluetoothDevices, requestBluetoothPermissions} from "./services/BluetoothLEService";
+import BluetoothData from "./components/BluetoothData";
 
 export default function App() {
 
     const [bluetoothDevices, setBluetoothDevices] = useState<BluetoothDevice[]>([]);
     const [bluetoothDeviceSelected, setBluetoothDeviceSelected] = useState<BluetoothDevice>();
     const [bluetoothPermissions, setBluetoothPermissions] = useState<boolean>(false);
+    const [bluetoothData, setBluetoothData] = useState<string>("");
 
     requestBluetoothPermissions().then(permission => setBluetoothPermissions(permission));
 
     const listBluetoothDevices = () => {
+        console.log("listBluetoothDevices")
 
         let bluetoothDevicesFound: BluetoothDevice[] = [];
         getBluetoothDevices()
@@ -46,10 +49,18 @@ export default function App() {
                       keyExtractor={(device: BluetoothDevice) => device.id}
                       ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
             />
-            {!bluetoothPermissions && <Text>Permissions Bluetooth non accordées</Text>}
-            {bluetoothDeviceSelected && <Text style={styles.buttonText}>Appareil sélectionné : {bluetoothDeviceSelected.name}</Text>}
+            {!bluetoothPermissions ? <Text>Permissions Bluetooth non accordées</Text> : null}
+            {bluetoothDeviceSelected ?
+                <>
+                    <Text style={styles.buttonText}>Appareil sélectionné : {bluetoothDeviceSelected.name}</Text>
+                    <BluetoothData bluetoothDeviceSelected={bluetoothDeviceSelected}
+                                   bluetoothData={bluetoothData}
+                                   setBluetoothData={setBluetoothData}/>
+                </> : null
+            }
             <TouchableOpacity
                 onPress={listBluetoothDevices}
+                testID={'listBluetoothDevices'}
                 style={styles.button}>
                 <Text style={styles.buttonText}>
                     Détecter les appareils Bluetooth
