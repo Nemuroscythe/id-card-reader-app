@@ -43,11 +43,13 @@ export default function App() {
 
     return (
         <View style={styles.container}>
-            <FlatList data={bluetoothDevices}
-                      renderItem={({item}) => <DeviceItem name={item.name}
-                                                          onPress={() => setBluetoothDeviceSelected(item)}/>}
-                      keyExtractor={(device: BluetoothDevice) => device.id}
-                      ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
+            <FlatList
+                testID={'bluetoothDevicesList'}
+                data={bluetoothDevices}
+                renderItem={({item}) => <DeviceItem name={item.name}
+                                                    onPress={() => setBluetoothDeviceSelected(item)}/>}
+                keyExtractor={(device: BluetoothDevice) => device.id}
+                ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
             />
             {!bluetoothPermissions ? <Text>Permissions Bluetooth non accordées</Text> : null}
             {bluetoothDeviceSelected ?
