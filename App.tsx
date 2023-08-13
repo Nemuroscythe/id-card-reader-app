@@ -1,7 +1,7 @@
 import {StatusBar} from 'expo-status-bar';
 import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import React, {useState} from "react";
-import {BluetoothDevice} from 'react-native-bluetooth-classic';
+import RNBluetoothClassic, {BluetoothDevice, StandardOptions} from 'react-native-bluetooth-classic';
 import {getBluetoothDevices, requestBluetoothPermissions} from "./services/BluetoothLEService";
 import BluetoothData from "./components/BluetoothData";
 
@@ -29,6 +29,22 @@ export default function App() {
             });
     }
 
+    const handleBluetoothDeviceSelection = async (device: BluetoothDevice) => {
+        const properties: StandardOptions = {delimiter: '\r'};
+        try {
+            console.log("Trying to accept connection to " + device.name);
+            device = await RNBluetoothClassic.accept(properties);
+            if (device) {
+                setBluetoothDeviceSelected(device);
+            }
+        } catch (error) {
+            // If we're not in an accepting state, then chances are we actually
+            // requested the cancellation. This could be managed on the native
+            // side but for now this gives more options.
+            console.error('Attempt to accept connection failed: ' + JSON.stringify(error));
+        }
+    }
+
     type DeviceProps = {
         name: string,
         onPress: () => void
@@ -47,7 +63,7 @@ export default function App() {
                 testID={'bluetoothDevicesList'}
                 data={bluetoothDevices}
                 renderItem={({item}) => <DeviceItem name={item.name}
-                                                    onPress={() => setBluetoothDeviceSelected(item)}/>}
+                                                    onPress={() => handleBluetoothDeviceSelection(item)}/>}
                 keyExtractor={(device: BluetoothDevice) => device.id}
                 ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
             />

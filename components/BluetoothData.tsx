@@ -10,9 +10,14 @@ type BluetoothDataProps = {
 export default function BluetoothData({bluetoothDeviceSelected, bluetoothData, setBluetoothData}: BluetoothDataProps) {
 
     const connectToBluetoothDevice = async () => {
+        console.log("Try to connect to Bluetooth device:" + bluetoothDeviceSelected.name)
         try {
-            const connection = await bluetoothDeviceSelected.connect();
-            if (connection) {
+            let isConnected = await bluetoothDeviceSelected.isConnected();
+            if (!isConnected) {
+                isConnected = await bluetoothDeviceSelected.connect()
+                console.log(`Was not connected, but now connected to ${bluetoothDeviceSelected.name}`);
+            }
+            if (isConnected) {
                 console.log(`Connected to ${bluetoothDeviceSelected.name}`);
                 initializeRead();
             } else {
@@ -23,8 +28,8 @@ export default function BluetoothData({bluetoothDeviceSelected, bluetoothData, s
         }
     }
 
-
     function initializeRead() {
+        console.log('Initializing read');
         const polling = true;
         RNBluetoothClassic.onDeviceDisconnected(() => disconnect(true));
         if (polling) {

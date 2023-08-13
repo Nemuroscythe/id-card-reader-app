@@ -18,7 +18,7 @@
     "jest-expo": "^49.0.0",
     "react": "18.2.0",
     "react-native": "0.71.8",
-    "react-native-bluetooth-classic": "^1.60.0-rc.28",
+    "react-native-bluetooth-classic": "^1.60.0-rc.29",
     "with-rn-bluetooth-classic": "^1.0.5"
   },
   "devDependencies": {
