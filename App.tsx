@@ -1,6 +1,6 @@
 import {StatusBar} from 'expo-status-bar';
 import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import RNBluetoothClassic, {BluetoothDevice, StandardOptions} from 'react-native-bluetooth-classic';
 import {getBluetoothDevices, requestBluetoothPermissions} from "./services/BluetoothLEService";
 import BluetoothData from "./components/BluetoothData";
@@ -12,7 +12,25 @@ export default function App() {
     const [bluetoothPermissions, setBluetoothPermissions] = useState<boolean>(false);
     const [bluetoothData, setBluetoothData] = useState<string>("");
 
-    requestBluetoothPermissions().then(permission => setBluetoothPermissions(permission));
+    const [acceptingMode, setAcceptingMode] = useState<boolean>(false);
+
+    useEffect(() => {
+
+        requestBluetoothPermissions()
+            .then(permission => setBluetoothPermissions(permission));
+        acceptConnections()
+            .then(() => console.log("Accepting mode activated"));
+
+        return () => {
+            console.log("Cleanup and deactivate discovery and accepting mode");
+            cancelDiscoveryMode()
+                .then(() => console.log("Discovery mode cancelled"));
+            cancelAcceptConnections()
+                .then(() => console.log("Accepting mode cancelled"));
+        }
+    }, []);
+
+
 
     const listBluetoothDevices = () => {
         console.log("listBluetoothDevices")
@@ -29,11 +47,19 @@ export default function App() {
             });
     }
 
-    const handleBluetoothDeviceSelection = async (device: BluetoothDevice) => {
+
+    // If a connection is already accepted, put the device as selected device
+    const acceptConnections = async () => {
+        if (acceptingMode) {
+            console.log("You are already in accepting mode");
+            return;
+        }
+
+        setAcceptingMode(true);
         const properties: StandardOptions = {delimiter: '\r'};
         try {
-            console.log("Trying to accept connection to " + device.name);
-            device = await RNBluetoothClassic.accept(properties);
+            console.log("Verifying if a connection is already accepted");
+            const device = await RNBluetoothClassic.accept(properties);
             if (device) {
                 setBluetoothDeviceSelected(device);
             }
@@ -42,8 +68,31 @@ export default function App() {
             // requested the cancellation. This could be managed on the native
             // side but for now this gives more options.
             console.error('Attempt to accept connection failed: ' + JSON.stringify(error));
+        } finally {
+            setAcceptingMode(false);
         }
     }
+
+    const cancelAcceptConnections = async () => {
+        if (!acceptingMode) {
+            return;
+        }
+
+        try {
+            const cancelled = await RNBluetoothClassic.cancelAccept();
+            setAcceptingMode(!cancelled);
+        } catch (error) {
+            console.error('Unable to cancel accept connection');
+        }
+    };
+
+    const cancelDiscoveryMode = async () => {
+        try {
+            await RNBluetoothClassic.cancelDiscovery();
+        } catch (error) {
+            console.error('Error occurred while attempting to cancel discover devices');
+        }
+    };
 
     type DeviceProps = {
         name: string,
@@ -63,7 +112,7 @@ export default function App() {
                 testID={'bluetoothDevicesList'}
                 data={bluetoothDevices}
                 renderItem={({item}) => <DeviceItem name={item.name}
-                                                    onPress={() => handleBluetoothDeviceSelection(item)}/>}
+                                                    onPress={() => setBluetoothDeviceSelected(item)}/>}
                 keyExtractor={(device: BluetoothDevice) => device.id}
                 ListEmptyComponent={() => <Text>Aucun appareil Bluetooth détecter</Text>}
             />
